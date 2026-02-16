@@ -5,186 +5,178 @@
 ![Telegram](https://img.shields.io/badge/Telegram-Notification-26A5E4?logo=telegram&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-Server-FCC624?logo=linux&logoColor=black)
 
-# Monitoring & Alerting Infrastructure (Prometheus + Grafana)
+# Monitoring Infrastructure with Prometheus & Grafana
 
 ## Overview
-This project demonstrates a basic monitoring and alerting stack built on a Linux-based infrastructure.
 
-The objective was to implement real-time system monitoring, visualization, and alert notification using open-source tools, while applying secure networking practices.
+This project implements a complete monitoring stack using:
 
-This project builds on top of the Secure Infrastructure Project and focuses on observability and reliability concepts relevant to IT Infrastructure and Cloud Engineering roles.
+- Prometheus (metrics collection)
+- Node Exporter (system metrics)
+- Grafana (dashboard visualization)
+- Alertmanager (alert routing)
+- Telegram Bot (real-time notifications)
 
----
+The goal of this project is to simulate a production-style monitoring environment for Linux servers in a controlled VirtualBox lab environment.
 
-## Goals
-- Install and configure Prometheus
-- Collect metrics using Node Exporter
-- Visualize system metrics in Grafana
-- Configure alert rules
-- Send alerts to Telegram
-- Apply firewall restrictions
-- Implement service auto-start using systemd
+This project was built as part of my preparation for IT Infrastructure / Cloud / DevOps internship roles.
 
 ---
 
 ## Architecture
 
-### Infrastructure Setup
-- 2 Ubuntu Server VMs
-  - Admin Server (Monitoring Stack)
-  - Web Server (Monitored Node)
+The monitoring architecture consists of:
 
-### Monitoring Stack (Admin Server)
-- Prometheus
-- Alertmanager
-- Grafana
-- Telegram Webhook Service (Python + Flask)
+- 1 Admin Server (Monitoring Server)
+  - Prometheus
+  - Grafana
+  - Alertmanager
+  - Telegram Webhook Service
 
-### Metrics Collection
-- Node Exporter installed on:
+- 1 Web Server
+  - Node Exporter
+  - Nginx
+
+Metrics flow:
+
+Node Exporter → Prometheus → Alertmanager → Telegram  
+Prometheus → Grafana (Visualization)
+
+Architecture diagrams are available in the `diagrams/` folder.
+
+---
+
+## Components
+
+### Prometheus
+- Scrapes metrics every 15 seconds
+- Collects metrics from:
   - Admin Server
   - Web Server
+- Evaluates alert rules
+
+### Node Exporter
+- Runs on both VMs
+- Exposes:
+  - CPU usage
+  - Memory usage
+  - Disk metrics
+  - System load
+
+### Grafana
+- Connected to Prometheus as a data source
+- Custom dashboard created for:
+  - CPU usage
+  - Memory usage
+  - Instance monitoring
+
+### Alertmanager
+- Routes alerts based on severity
+- Separates:
+  - warning
+  - critical
+- Sends alerts to Telegram via webhook service
+
+### Telegram Integration
+- Custom webhook service built using Python (Flask)
+- Receives Alertmanager payload
+- Sends formatted message to Telegram Bot
 
 ---
 
-## Monitoring Flow
+## Implementation Details
 
-1. Node Exporter exposes metrics on port `9100`
-2. Prometheus scrapes metrics every 15 seconds
-3. Alert rules evaluate system conditions (e.g., high CPU usage)
-4. Alertmanager processes alerts
-5. Alerts are:
-   - Visible in Alertmanager UI
-   - Sent to Telegram via webhook
+### 1. Prometheus Configuration
 
----
+- Configured `scrape_configs` for:
+  - localhost (Prometheus)
+  - Admin Server (Node Exporter)
+  - Web Server (Node Exporter)
 
-## Security Configuration
+- Alert rules created:
+  - High CPU Usage (warning)
+  - High CPU Usage Critical
 
-### Firewall (UFW)
+### 2. Alert Rules Example
 
-Web Server:
-- Allow SSH only from Admin Server
-- Allow port 9100 only from Admin Server
-- Allow HTTP (80)
-- Deny other inbound traffic
+Alerts trigger when CPU usage exceeds defined thresholds for a sustained period.
 
-Admin Server:
-- Allow 9090 (Prometheus)
-- Allow 3000 (Grafana)
-- Allow internal monitoring traffic
-- Restrict unnecessary exposure
+Severity labels:
+- warning
+- critical
 
----
+### 3. Alert Flow
 
-## Services Configured
-
-- Prometheus (systemd service)
-- Node Exporter (systemd service)
-- Grafana (systemd service)
-- Alertmanager (systemd service)
-- Telegram Webhook (Python virtual environment)
-
-All services configured to auto-start on boot.
+1. Prometheus detects threshold breach.
+2. Alert is marked as firing.
+3. Alertmanager receives alert.
+4. Alert is routed based on severity.
+5. Webhook service processes alert.
+6. Telegram bot sends real-time notification.
 
 ---
 
-## Alert Rules Implemented
+## Security Hardening
 
-### High CPU Usage (Critical)
-Triggered when:
-- CPU usage > defined threshold
-- For a sustained period
-
-Alert includes:
-- alertname
-- instance
-- severity
-- summary
-- description
+- UFW firewall enabled on both VMs
+- Port 9100 (Node Exporter) restricted to Admin Server only
+- SSH access restricted
+- Grafana anonymous access disabled
+- Default Grafana credentials changed
+- Services configured with systemd for auto-start
 
 ---
 
-## Telegram Integration
+## Screenshots
 
-A lightweight webhook service was implemented using:
-
-- Python
-- Flask
-- Requests library
-- Virtual environment (venv)
-
-Alertmanager sends alerts to:
-http://127.0.0.1:8080/alert
-
-The webhook service forwards alerts to Telegram Bot API.
-
----
-
-
-## Repository Structure
-
-project-2-monitoring/
-├── diagrams/
-├── screenshots/
-├── docs/
-│ ├── prometheus-config.md
-│ ├── alert-rules.md
-│ ├── alertmanager-config.md
-│ └── troubleshooting.md
-└── README.md
-
-
----
-
-## Screenshots Included
+Available in the `screenshots/` folder:
 
 - Prometheus targets page
-- Node Exporter status
+- Prometheus alerts (firing state)
 - Grafana dashboard
-- Alert firing in Prometheus
-- Alert visible in Alertmanager
-- Telegram notification
-- UFW configuration
-- Service status (systemctl)
+- Alertmanager UI
+- Telegram alert message
+- Firewall rules
+- Service status (Prometheus, Grafana, Alertmanager)
 
 ---
 
 ## Challenges & Troubleshooting
 
-- Incorrect Prometheus config path caused rule loading failure
-- YAML indentation issues in alert rules
-- Webhook connection refused (service not running)
-- Telegram 403 error due to incorrect chat_id
-- Firewall initially blocking port 9100
+- YAML formatting issues in alert rules
+- Prometheus service failed due to rule misconfiguration
+- Telegram bot returned 403 due to incorrect chat ID
+- Webhook service initially not running (connection refused)
+- Firewall rules blocking Node Exporter
 
-Each issue was diagnosed using logs and corrected.
+Each issue was diagnosed using logs and corrected accordingly.
 
 ---
 
-## Key Learning Outcomes
+## What I Learned
 
-- Infrastructure monitoring fundamentals
-- Metric scraping architecture
-- Alert lifecycle understanding
-- Service management using systemd
-- Secure metric exposure
-- Webhook-based alert forwarding
-- Debugging production-like failures
+- Designing monitoring-first infrastructure
+- Understanding metrics lifecycle
+- Writing Prometheus alert rules
+- Alert routing strategies
+- Production-style service management with systemd
+- Securing monitoring endpoints
+- Integrating infrastructure alerts with external messaging platforms
 
 ---
 
 ## Future Improvements
 
-- TLS for Prometheus & Grafana
-- Role-based access control in Grafana
-- External Alertmanager clustering
-- Centralized logging integration
-- Cloud deployment simulation
+- Add Alertmanager email integration
+- Deploy stack using Docker Compose
+- Add logging stack (Loki or ELK)
+- Deploy monitoring on cloud VM
+- Add SSL/TLS for Grafana and Prometheus
 
 ---
 
 ## Author
+
 Ryan Adam  
 Aspiring IT Infrastructure & Cloud Engineer  
 GitHub: https://github.com/ryanadams-code
